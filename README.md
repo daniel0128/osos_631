@@ -3,12 +3,12 @@
 ##Remain old timer_sleep function(a busy sleep).  
 ##Use semaphore to implement non-busy-sleep  
 ###Maintain a list and a node:  
-  __struct list timer_wait_list;  
+  _struct list timer_wait_list;  
   struct timer_wait_node{  
       struct semaphore sem;  
       struct list_elem elem;  
       struct thread *t;  
-  };__  
+  };_  
 Add a new field in thread to record finish time: finish  
 ##How to sleep?  
 void timer_non_busy_sleep(int microSecounds);  
