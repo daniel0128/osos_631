@@ -5,9 +5,9 @@
 ###Maintain a list and a node:  
   list timer_wait_list;  
   struct timer_wait_node{  
-    struct semaphore sem;  
-    struct list_elem elem;  
-    struct thread *t;  
+      struct semaphore sem;  
+      struct list_elem elem;  
+      struct thread *t;  
   };  
 Add a new field in thread to record finish time: finish  
 ##How to sleep?  
