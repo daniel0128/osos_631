@@ -1,6 +1,6 @@
 # Non-busy-timer-sleep
 
-remain old timer_sleep function(a busy sleep) 
+remain old timer_sleep function(a busy sleep)\n
 use semaphore to implement non-busy-sleep
 maintain a list and a node:
 static struct list timer_wait_list;
