@@ -26,7 +26,13 @@ static size_t user_page_limit = SIZE_MAX;
 static struct semaphore task_sem;
 
 static void hello_test(void *);
-
+static void many_1(void *);
+static void many_2(void *);
+static void many_3(void *);
+static void many_4(void *);
+static void many_5(void *);
+static void many_6(void *);
+/*
 struct wait_node {
   struct lock mutex;
   struct condition cv;
@@ -35,12 +41,13 @@ struct wait_node {
 
 static struct wait_node sync_node;
 
-static void many_1(void *);
-static void many_2(void *);
-static void many_3(void *);
-static void many_4(void *);
-static void many_5(void *);
-static void many_6(void *);
+static void t_wait(struct wait_node *wn);
+static void t_exit(struct wait_node *wn);
+*/
+//static void cv_test(void *);
+static void B(void *);
+static void c(void *);
+static void shell(void *);
 
 
 /*
@@ -56,6 +63,7 @@ static void test_swi_interrupt() {
   generate_swi_interrupt(); // Function defined in interrupts.s
 }
 
+static int tid_b;
 
 /* Initializes the Operating System. The interruptions have to be disabled at entrance.
 *
@@ -84,33 +92,36 @@ void init() {
   interrupts_init();
   timer_init();
 
-//  thread_create("First Test", PRI_MAX, &first_test, NULL);
-
-
-  /* Starts preemptive thread scheduling by enabling interrupts. */
-
-
-  timer_msleep(5000000);
+  timer_msleep(3000000);
+    /* Starts preemptive thread scheduling by enabling interrupts. */
+    thread_start();
   printf("\nFinish booting.");
 
   /* Initialize the task_sem to coordinate the main thread with workers */
     printf("\nthread will be start");
 
-  sema_init(&task_sem, 0);
+    tid_b = thread_create("B", PRI_MAX, &B, NULL);
+
+    thread_wait(tid_b);
+
+
+
 
   thread_create("Many 1", PRI_MAX, &many_1, NULL);
-    thread_start();
+//    thread_start();
 //  thread_create("Many 2", PRI_MAX, &many_2, NULL);
 //  thread_create("Many 3", PRI_MAX, &many_3, NULL);
 //  thread_create("Many 4", PRI_MAX, &many_4, NULL);
 //  thread_create("Many 5", PRI_MAX, &many_5, NULL);
 //  thread_create("Many 6", PRI_MAX, &many_6, NULL);
 
-  sema_down(&task_sem);
 
+    printf("\nContinue main thread.");
   printf("\nAll done.");
   thread_exit ();
 }
+
+
 static void many_1(void *aux){
     timer_non_busy_sleep(15000000);
     int i;
@@ -147,4 +158,61 @@ static void many_2(void *aux){
     }
 }
 
+static void hello_test(void *aux) {
+  printf("\n");
+  printf("Hello from OsOS\n");
+  printf("\n");
+  sema_up(&task_sem);
+}
 
+
+static void B(void *aux){
+  int j = 0;
+  for(j;j<100;j++){
+    printf("\nBBBBB");
+  }
+  printf("\n=================================\n");
+
+}
+
+static void c(void *aux){
+  thread_wait(tid_b);
+  int j = 0;
+  for(j;j<20;j++){
+    printf("\nCCCCC");
+  }
+  printf("\n=================================\n");
+
+}
+
+static void shell(void *aux){
+  uart_puts("Welcome to raspberry pi\n");
+  uart_puts("$");
+  unsigned char buf[128];
+  unsigned char ch;
+  int i = 0;
+  while(1){
+    ch = uart_getc();
+    uart_putc(ch);
+    if(ch!='\n'){
+      buf[i++] = ch;
+    }else{
+      process_cmd(&buf, i);
+      i = 0;
+    }
+  }
+}
+
+void process_cmd(unsigned char * buf, int size){
+    unsigned char name[128];
+    unsigned char *arg1;
+    unsigned char *arg2;
+    unsigned char *p = buf;
+    unsigned char *q = name;
+    while(*p != ' '|| *p != '\n'){
+      q = *p;
+      q++;
+    }
+    q='\0';
+    uart_puts(name);
+}

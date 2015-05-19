@@ -141,4 +141,6 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+void thread_wait(tid_t tid);
+
 #endif /* THREADS_THREAD_H_ */

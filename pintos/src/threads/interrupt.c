@@ -88,18 +88,15 @@ void interrupts_init(void) {
  */
 void interrupts_register_irq(unsigned char irq_number, interrupts_handler_function *handler,
     const char *name) {
+  if (!interrupts_is_valid_irq_number(irq_number)) {
+      return;
+  }
 
-    if (!interrupts_is_valid_irq_number(irq_number)) {
-        return;
-    }
+  irq_handlers[irq_number] = handler;
+  irq_names[irq_number] = name;
 
-    printf("\nregistering........\n");
-    irq_handlers[irq_number] = handler;
-    irq_names[irq_number] = name;
-
-    // Enables the IRQ in the Interrupt Controller.
-    interrupts_enable_irq(irq_number);
-    printf("irq enabled\n");
+  // Enables the IRQ in the Interrupt Controller.
+  interrupts_enable_irq(irq_number);
 }
 
 /* Register the SWI hander for the Software interrupts. */

@@ -22,6 +22,7 @@
 #include "synch.h"
 #include "thread.h"
 #include "vaddr.h"
+#include "../lib/debug.h"
 
 /* Returns the value of the current stack pointer. The function is defined
    in interruptsHandlers.s. */
@@ -67,6 +68,18 @@ static uint32_t thread_ticks;   /* # of timer ticks since last yield. */
 /* Stack address to be allocated for the different threads. */
 //static uint32_t thread_memory_loc = MEMORY_THREAD_BASE;
 
+
+//static struct semaphore wait_sem;
+
+struct wait_node{
+  struct thread *t;
+  struct lock mutex;
+  struct condition cv;
+  struct list_elem elem;//for wait list
+};
+
+static struct list wait_list;
+
 static void kernel_thread (thread_func *, void *aux);
 
 /* Current stack frame. */
@@ -111,6 +124,11 @@ void thread_init(void) {
   lock_init (&tid_lock);
   list_init(&ready_list);
   list_init(&all_list);
+
+
+  //for thread wait
+  list_init(&wait_list);
+  printf("\nInitialize waiting list");
 
   /* Set up a thread structure for the running thread. */
   initial_thread = get_first_thread();
@@ -180,6 +198,7 @@ void thread_start() {
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
 void thread_tick (struct interrupts_stack_frame *stack_frame) {
+
 //    printf("\nthread ticking...");
     /* Setting the current stack frame.
        Note: This is the first thing that it has to be done before any further processing. */
@@ -198,6 +217,7 @@ void thread_tick (struct interrupts_stack_frame *stack_frame) {
     if (thread_ticks >= TIME_SLICE) {
         interrupts_yield_on_return();
     }
+
 }
 
 /* Prints thread statistics. */
@@ -224,6 +244,7 @@ tid_t thread_create(const char *name, int32_t priority,
   ASSERT (name != NULL);
   ASSERT (function != NULL);
 
+  printf("\nCreate new thread: %s", name);
   enum interrupts_level old_level;
   tid_t tid;
 
@@ -338,14 +359,35 @@ tid_t thread_tid (void) {
 void thread_exit (void) {
   ASSERT (!interrupts_context ());
   ASSERT (thread_current()->status == THREAD_RUNNING)
-
+  struct list_elem *a;
+  struct wait_node *node;
+  struct thread *current = thread_current();
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   interrupts_disable();
   printf("\nDying slowly ---------------------------------- %s", thread_current()->name);
+
+  //remove from wait list
+//  printf("\nBegin remove from wait list");
+  a = list_begin (&wait_list);
+  if(!list_empty(&wait_list)){
+      while(a != list_end (&wait_list)){
+          node = list_entry(a,struct wait_node, elem);
+          if(node->t == current){
+              //wake up all waiting threads
+              lock_acquire(&node->mutex);
+              cond_broadcast(&node->cv,&node->mutex);
+              printf("\nThread %s signal all waiting thread", current->name);
+              list_remove(&node->elem);
+              lock_release(&node->mutex);
+           }
+           a = list_next (a);
+      }
+  }
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
+//  sema_up(&wait_sem);
   schedule ();
   NOT_REACHED ();
 }
@@ -431,7 +473,6 @@ static void schedule_not_in_interrupt(struct thread *cur, struct thread *next) {
  */
 void thread_schedule_tail(struct thread *prev, struct thread *next) {
   ASSERT (interrupts_get_level () == INTERRUPTS_OFF);
-//
 //  printf("\nSchedule tail");
 //  printf("\nPrev: %s, TID: %d", prev->name, prev->tid);
 //  printf("\nNext: %s, TID: %d", next->name, next->tid);
@@ -636,4 +677,58 @@ static void set_current_interrupts_stack_frame(struct interrupts_stack_frame *st
 static struct interrupts_stack_frame *get_current_interrupts_stack_frame() {
   ASSERT(current_stack_frame != NULL)
   return current_stack_frame;
+}
+
+
+void thread_wait(tid_t tid) {
+  //sema_init(&wait_sem,0);
+  //find thread by tid
+  struct list_elem *e ;
+  struct list_elem *a;
+  struct thread * t ;
+  struct wait_node *node;
+  for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next (e)){
+      t = list_entry(e,struct thread, allelem);
+      if((t->tid == tid)&&(t->status != THREAD_DYING)){
+//          printf("\nfind waited thread: %s", t->name);
+          a = list_begin (&wait_list);
+          if(!list_empty(&wait_list)){
+//              printf("\nSearch wait list to find waited thread: %s", t->name);
+              while(a != list_end (&wait_list)){
+                  node = list_entry(a,struct wait_node, elem);
+                  if(node->t == t){
+                      //already in wait list, add current thread
+                      //sema_down(list_entry(a,struct wait_node, elem)->sem);
+                      lock_acquire(&node->mutex);
+                      printf("\n thread %s wait for thread %s",thread_current()->name,t->name);
+                      cond_wait(&node->cv,&node->mutex);
+                      printf("\n Finish thread %s wait",thread_current()->name);
+                      lock_release(&node->mutex);
+                      return;
+                  }else{
+                    a = list_next (a);
+                  }
+              }
+          }
+          //not in the wait list, create node
+          if(a == list_end (&wait_list)){
+//              printf("\nPrepare insert node to wait list");
+              struct wait_node new_node;
+              new_node.t = t;
+              lock_init(&new_node.mutex);
+              cond_init(&new_node.cv);
+              lock_acquire(&new_node.mutex);
+              list_push_back(&wait_list, &new_node.elem);
+              printf("\nThread %s wait for thread %s",thread_current()->name,t->name);
+              cond_wait(&new_node.cv,&new_node.mutex);
+              printf("\nFinish thread %s wait",thread_current()->name);
+              lock_release(&new_node.mutex);
+              return;
+          }
+
+      }
+  }
+  //not such thread, the thread may exit or non-exist
+  return;
+//  sema_down(&wait_sem);
 }

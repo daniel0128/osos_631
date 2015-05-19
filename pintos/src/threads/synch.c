@@ -31,7 +31,6 @@
 #include <string.h>
 #include "interrupt.h"
 #include "thread.h"
-#include "../lib/stdio.h"
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -70,10 +69,7 @@ sema_down (struct semaphore *sema)
   while (sema->value == 0) 
     {
       list_push_back (&sema->waiters, &thread_current ()->elem);
-//        printf("\nit seems that sema went down\n");
-//        printf("thread name is: %s\n",&thread_current()->name);
       thread_block ();
-//        printf("blocked?\n");
     }
   sema->value--;
   interrupts_set_level (old_level);

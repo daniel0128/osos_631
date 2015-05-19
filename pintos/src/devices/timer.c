@@ -24,6 +24,7 @@ struct bcm2835_system_timer_registers {
   volatile unsigned int C2;  /** System Timer Compare 2.  DO NOT USE; is used by GPU.  */
   volatile unsigned int C3;  /** System Timer Compare 3 */
 };
+
 static struct list timer_wait_list;
 
 struct timer_wait_node{
@@ -31,7 +32,6 @@ struct timer_wait_node{
     struct list_elem elem;
     struct thread *t;
 };
-
 /* Pointer to the timer registers. */
 static volatile struct bcm2835_system_timer_registers * const timer_registers =
         (volatile struct bcm2835_system_timer_registers*) SYSTEM_TIMER_REGISTERS_BASE;
@@ -81,13 +81,15 @@ void timer_non_busy_sleep(int microSecounds){
         t->finish = finish;
         printf("\nI'll be sleeping for %d microSecounds\n", microSecounds);
         printf("I will wake up at %d\n",finish);
-        enum interrupts_level old_level;
 
+        enum interrupts_level old_level;
         old_level = interrupts_disable();
+
         struct timer_wait_node twn;
         sema_init(&twn.sem, 0);
         twn.t = t;
         list_push_back(&timer_wait_list, &twn.elem);
+
         interrupts_set_level(old_level);
 
         sema_down(&twn.sem);
@@ -97,7 +99,6 @@ void timer_non_busy_sleep(int microSecounds){
 }
 
 void wakeUp(){
-    printf("\nwake up function\n");
     struct list* wait_list = &timer_wait_list;
     struct timer_wait_node * twn;
     enum interrupts_level old_level;
@@ -146,24 +147,12 @@ static void timer_irq_handler(struct interrupts_stack_frame *stack_frame) {
 
     thread_tick(stack_frame);
 
-//    struct list* wait_list = &timer_wait_list;
-//    struct timer_wait_node * twn;
-//    struct list_elem* e = list_front(wait_list);
-////    twn = list_entry(list_front(wait_list),struct timer_wait_node,elem);
-//    while (e != list_tail(wait_list)){
-//        twn = list_entry(e,struct timer_wait_node,elem);
-//        if(twn->t->finish >=timer_get_timestamp())
-//            sema_up(&twn->sem);
-//        e=e->next;
-//    }
-
   //timer_msleep(1000000);
-    timer_msleep(300000);
+    timer_msleep(200000);
 
   // The System Timer compare register has to be set up with the new time after the timer interrupt.
     timer_set_interval(IRQ_1, TIMER_PERIODIC_INTERVAL);
 }
-
 
 /* Sets the periodic interval of the timer.
  * Set the timestamp value in the BCM2835 System timer. The interface to the BCM2835 System Timer

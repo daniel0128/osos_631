@@ -8,6 +8,7 @@
 #ifndef DEVICES_TIMER_H_
 #define DEVICES_TIMER_H_
 
+
 void timer_init(void);
 
 int timer_get_timestamp();
