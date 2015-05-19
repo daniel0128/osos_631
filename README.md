@@ -24,11 +24,12 @@ compute a wake up time:
   timer_interrupt?  
   thread_tick?  
 ->schedule?  
+calling schedule function will first check wait list  
+  waked thread will finally run  
 _schedule{  
   wake_up();  
 ...  
 }_
-  calling schedule function will first check wait list  
-  waked thread will finally run  
+    
   
     
