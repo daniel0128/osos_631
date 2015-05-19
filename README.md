@@ -26,7 +26,7 @@ compute a wake up time:
 ->schedule?  
 calling schedule function will first check wait list  
   waked thread will finally run  
-_schedule{  
+_schedule(){  
   wake_up();  
 ...  
 }_
