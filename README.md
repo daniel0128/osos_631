@@ -20,10 +20,8 @@ compute a wake up time:
   wake_up function:  
   go through the timer_wait_list and find the thread which should wake up by comparing the finish time and current time.   
   If current time is later--->the thread should wake  
-##where to wake up?  
-  timer_interrupt?  
-  thread_tick?  
-->schedule?  
+##where to wake up?   
+schedule  
 calling schedule function will first check wait list  
   waked thread will finally run  
 _schedule(){  
