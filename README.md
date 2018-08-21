@@ -1,33 +1,36 @@
 # Non-busy-timer-sleep
 
-##Keep old timer_sleep function(a busy sleep).  
-##Use semaphore to implement non-busy-sleep  
-###Maintain a list and a node:  
-  _struct list timer_wait_list;  
+## Keep old timer_sleep function(a busy sleep).  
+## Use semaphore to implement non-busy-sleep  
+### Maintain a list and a node:  
+  ```_struct list timer_wait_list;  
   struct timer_wait_node{  
       struct semaphore sem;  
       struct list_elem elem;  
       struct thread *t;  
-  };_  
+  }; 
+  ``` 
 Add a new field in thread to record finish time: _finish_  
-##How to sleep?  
-void timer_non_busy_sleep(int microSecounds);  
+## How to sleep?  
+`void timer_non_busy_sleep(int microSecounds);`
 compute a wake up time:  
-  t->finish = timer_get_timestamp() + microSecounds;  
-  put a timer_wait_node(say twn) back to the timer wait list  
+`  t->finish = timer_get_timestamp() + microSecounds;  `
+  put a `timer_wait_node(say twn)` back to the timer wait list  
   semaphore down twn and it will sleep  
-##How to wake up?  
-  wake_up function:  
+## How to wake up?  
+  `wake_up` function:  
   go through the timer_wait_list and find the thread which should wake up by comparing the finish time and current time.   
   If current time is later--->the thread should wake  
-##where to wake up?   
+## where to wake up?   
 schedule  
 calling schedule function will first check wait list  
   waked thread will finally run  
-_schedule(){  
+```_schedule(){  
   wake_up();  
 ...  
-}_
+}
+```
+
     
   
     
